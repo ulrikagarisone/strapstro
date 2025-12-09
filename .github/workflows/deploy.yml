@@ -1,0 +1,52 @@
+# File: .github/workflows/deploy.yml
+name: Astro Frontend CI/CD
+
+# Define what triggers this workflow:
+on:
+  # 1. Manual push to the 'main' branch, but ONLY if files in /frontend change.
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml' # Also trigger if the workflow itself changes
+
+  # 2. Webhook trigger from Strapi (via the proxy).
+  #    The 'types' MUST match the GITHUB_EVENT_TYPE variable you set for the proxy.
+  repository_dispatch:
+    types: [strapi_triggers_github_workflow]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Define environment variables using the repository variables you created in GitHub Settings
+    env:
+      STRAPI_URL: ${{ vars.STRAPI_URL }}
+      STRAPI_MEDIA_URL: ${{ vars.STRAPI_MEDIA_URL }}
+
+    steps:
+      - name: Checkout Repository
+        # Fetches the code from your GitHub repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        # Installs the correct Node version for Astro
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (in /frontend)
+        # Runs 'npm install' inside the 'frontend' directory
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Build and Deploy Astro
+        # This uses the official Astro action for deployment.
+        # It automatically handles the build process and uses the
+        # STRAPI_URL environment variables set above.
+        uses: withastro/action@v5
+        with:
+          path: ./frontend
+          # The deployment target (e.g., Vercel, Netlify) is usually inferred 
+          # by this action or configured through the hosting platform itself.
