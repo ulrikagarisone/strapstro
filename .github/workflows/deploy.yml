@@ -1,52 +1,48 @@
-# File: .github/workflows/deploy.yml
-name: Astro Frontend CI/CD
+name: Deploy to GitHub Pages
 
-# Define what triggers this workflow:
 on:
-  # 1. Manual push to the 'main' branch, but ONLY if files in /frontend change.
+  # Trigger the workflow every time you push to the `main` branch
+  # Using a different branch name? Replace `main` with your branch’s name
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy.yml' # Also trigger if the workflow itself changes
-
-  # 2. Webhook trigger from Strapi (via the proxy).
-  #    The 'types' MUST match the GITHUB_EVENT_TYPE variable you set for the proxy.
+      - "frontend/**" # Only trigger when frontend changes
+      - ".github/workflows/deploy.yml"
   repository_dispatch:
     types: [strapi_triggers_github_workflow]
+  # Allows you to run this workflow manually from the Actions tab on GitHub.
+  workflow_dispatch:
+
+# Allow this job to clone the repo and create a page deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    
-    # Define environment variables using the repository variables you created in GitHub Settings
-    env:
-      STRAPI_URL: ${{ vars.STRAPI_URL }}
-      STRAPI_MEDIA_URL: ${{ vars.STRAPI_MEDIA_URL }}
-
     steps:
-      - name: Checkout Repository
-        # Fetches the code from your GitHub repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        # Installs the correct Node version for Astro
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies (in /frontend)
-        # Runs 'npm install' inside the 'frontend' directory
-        run: npm install
-        working-directory: ./frontend
-
-      - name: Build and Deploy Astro
-        # This uses the official Astro action for deployment.
-        # It automatically handles the build process and uses the
-        # STRAPI_URL environment variables set above.
+      - name: Checkout your repository using git
+        uses: actions/checkout@v5
+      - name: Install, build, and upload your site
         uses: withastro/action@v5
         with:
           path: ./frontend
-          # The deployment target (e.g., Vercel, Netlify) is usually inferred 
-          # by this action or configured through the hosting platform itself.
+        # node-version: 24 # The specific version of Node that should be used to build your site. Defaults to 22. (optional)
+        # package-manager: pnpm@latest # The Node package manager that should be used to install dependencies and build your site. Automatically detected based on your lockfile. (optional)
+        # build-cmd: pnpm run build # The command to run to build your site. Runs the package build script/task by default. (optional)
+        env:
+          STRAPI_URL: ${{ vars.STRAPI_URL }} # Use single quotation marks for the variable value. (optional)
+          STRAPI_MEDIA_URL: ${{ vars.STRAPI_MEDIA_URL }} # Use single quotation marks for the variable value. (optional)
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
