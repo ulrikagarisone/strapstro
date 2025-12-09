@@ -123,7 +123,7 @@ const { product } = Astro.props;
   transition:name={`product-${product.documentId}`}
 >
   <Image
-    src={import.meta.env.STRAPI_URL + product.image.url}
+    src={import.meta.env.STRAPI_MEDIA_URL + product.image.url}
     alt="Product image"
     inferSize
     layout="constrained"

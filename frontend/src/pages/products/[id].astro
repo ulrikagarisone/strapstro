@@ -31,7 +31,7 @@ const { product, prev, next } = Astro.props;
 <BaseLayout pageTitle={product.title}>
   <div class="wrapper" transition:name={`product-${product.documentId}`}>
     <Image
-      src={import.meta.env.STRAPI_URL + product.image.url}
+      src={import.meta.env.STRAPI_MEDIA_URL + product.image.url}
       alt="Product image"
       inferSize
       layout="constrained"
